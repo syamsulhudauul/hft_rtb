@@ -1,0 +1,15 @@
+[Unit]
+Description=Rust HFT Engine
+After=network.target
+
+[Service]
+User=engine
+Group=engine
+Environment=RUST_LOG=info
+ExecStart=/usr/local/bin/engine
+Restart=on-failure
+RestartSec=2
+LimitNOFILE=1048576
+
+[Install]
+WantedBy=multi-user.target

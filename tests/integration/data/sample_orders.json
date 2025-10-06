@@ -1,0 +1,310 @@
+{
+  "sample_orders": [
+    {
+      "order_id": "ORD-001",
+      "client_order_id": "CLIENT-001",
+      "symbol": "AAPL",
+      "side": "BUY",
+      "order_type": "LIMIT",
+      "quantity": 100,
+      "price": 195.50,
+      "time_in_force": "GTC",
+      "timestamp": 1703001000000,
+      "account": "ACC-001",
+      "strategy": "MOMENTUM"
+    },
+    {
+      "order_id": "ORD-002",
+      "client_order_id": "CLIENT-002",
+      "symbol": "GOOGL",
+      "side": "SELL",
+      "order_type": "MARKET",
+      "quantity": 50,
+      "time_in_force": "IOC",
+      "timestamp": 1703001001000,
+      "account": "ACC-002",
+      "strategy": "ARBITRAGE"
+    },
+    {
+      "order_id": "ORD-003",
+      "client_order_id": "CLIENT-003",
+      "symbol": "MSFT",
+      "side": "BUY",
+      "order_type": "STOP",
+      "quantity": 200,
+      "stop_price": 378.00,
+      "time_in_force": "GTC",
+      "timestamp": 1703001002000,
+      "account": "ACC-001",
+      "strategy": "RISK_MANAGEMENT"
+    },
+    {
+      "order_id": "ORD-004",
+      "client_order_id": "CLIENT-004",
+      "symbol": "AMZN",
+      "side": "SELL",
+      "order_type": "LIMIT",
+      "quantity": 75,
+      "price": 154.00,
+      "time_in_force": "FOK",
+      "timestamp": 1703001003000,
+      "account": "ACC-003",
+      "strategy": "MEAN_REVERSION"
+    },
+    {
+      "order_id": "ORD-005",
+      "client_order_id": "CLIENT-005",
+      "symbol": "TSLA",
+      "side": "BUY",
+      "order_type": "STOP_LIMIT",
+      "quantity": 150,
+      "price": 249.00,
+      "stop_price": 248.50,
+      "time_in_force": "GTC",
+      "timestamp": 1703001004000,
+      "account": "ACC-002",
+      "strategy": "BREAKOUT"
+    }
+  ],
+  "order_modifications": [
+    {
+      "original_order_id": "ORD-001",
+      "modification_type": "PRICE_CHANGE",
+      "new_price": 195.45,
+      "timestamp": 1703001010000
+    },
+    {
+      "original_order_id": "ORD-003",
+      "modification_type": "QUANTITY_CHANGE",
+      "new_quantity": 250,
+      "timestamp": 1703001011000
+    },
+    {
+      "original_order_id": "ORD-004",
+      "modification_type": "CANCEL",
+      "timestamp": 1703001012000,
+      "reason": "CLIENT_REQUEST"
+    }
+  ],
+  "order_executions": [
+    {
+      "execution_id": "EXEC-001",
+      "order_id": "ORD-001",
+      "symbol": "AAPL",
+      "side": "BUY",
+      "quantity": 100,
+      "price": 195.50,
+      "timestamp": 1703001015000,
+      "execution_type": "FULL",
+      "liquidity": "TAKER",
+      "commission": 1.00,
+      "venue": "NASDAQ"
+    },
+    {
+      "execution_id": "EXEC-002",
+      "order_id": "ORD-002",
+      "symbol": "GOOGL",
+      "side": "SELL",
+      "quantity": 50,
+      "price": 142.32,
+      "timestamp": 1703001016000,
+      "execution_type": "FULL",
+      "liquidity": "TAKER",
+      "commission": 0.50,
+      "venue": "NASDAQ"
+    },
+    {
+      "execution_id": "EXEC-003",
+      "order_id": "ORD-005",
+      "symbol": "TSLA",
+      "side": "BUY",
+      "quantity": 75,
+      "price": 248.55,
+      "timestamp": 1703001017000,
+      "execution_type": "PARTIAL",
+      "liquidity": "MAKER",
+      "commission": 0.75,
+      "venue": "NASDAQ"
+    }
+  ],
+  "test_scenarios": {
+    "high_frequency_orders": {
+      "description": "Rapid order submission and cancellation",
+      "order_rate_per_second": 1000,
+      "cancellation_rate": 0.8,
+      "symbols": ["AAPL", "GOOGL", "MSFT"],
+      "duration_seconds": 60,
+      "order_types": ["LIMIT"],
+      "price_range_percent": 0.01
+    },
+    "large_order_slicing": {
+      "description": "Breaking large orders into smaller pieces",
+      "parent_order_size": 10000,
+      "slice_size": 100,
+      "slice_interval_ms": 500,
+      "symbols": ["AAPL"],
+      "strategy": "TWAP"
+    },
+    "cross_symbol_arbitrage": {
+      "description": "Simultaneous orders across related symbols",
+      "symbol_pairs": [
+        {"primary": "AAPL", "hedge": "QQQ"},
+        {"primary": "GOOGL", "hedge": "QQQ"}
+      ],
+      "hedge_ratio": 0.95,
+      "max_position_size": 1000
+    },
+    "market_making": {
+      "description": "Continuous bid/ask quote updates",
+      "symbols": ["AAPL", "GOOGL", "MSFT", "AMZN", "TSLA"],
+      "spread_bps": 5,
+      "quote_size": 100,
+      "update_frequency_ms": 100,
+      "max_position": 500
+    }
+  },
+  "stress_test_orders": [
+    {
+      "test_name": "order_flood",
+      "description": "Flood system with orders to test capacity",
+      "order_count": 10000,
+      "submission_rate_per_second": 5000,
+      "order_types": ["LIMIT", "MARKET"],
+      "symbols": ["AAPL", "GOOGL", "MSFT", "AMZN", "TSLA"],
+      "expected_rejection_rate": 0.05
+    },
+    {
+      "test_name": "cancel_flood",
+      "description": "High cancellation rate test",
+      "order_count": 5000,
+      "cancellation_rate": 0.95,
+      "cancel_delay_ms": 10,
+      "symbols": ["AAPL"],
+      "expected_cancel_success_rate": 0.90
+    },
+    {
+      "test_name": "modification_storm",
+      "description": "Rapid order modifications",
+      "order_count": 1000,
+      "modifications_per_order": 5,
+      "modification_interval_ms": 50,
+      "symbols": ["GOOGL"],
+      "modification_types": ["PRICE_CHANGE", "QUANTITY_CHANGE"]
+    }
+  ],
+  "latency_test_orders": [
+    {
+      "test_name": "order_to_ack_latency",
+      "description": "Measure order acknowledgment latency",
+      "order_count": 1000,
+      "order_type": "LIMIT",
+      "symbol": "AAPL",
+      "expected_max_latency_ms": 5,
+      "measurement_points": ["SUBMIT", "ACK"]
+    },
+    {
+      "test_name": "order_to_execution_latency",
+      "description": "Measure order execution latency",
+      "order_count": 500,
+      "order_type": "MARKET",
+      "symbol": "AAPL",
+      "expected_max_latency_ms": 10,
+      "measurement_points": ["SUBMIT", "EXECUTION"]
+    },
+    {
+      "test_name": "cancel_latency",
+      "description": "Measure order cancellation latency",
+      "order_count": 1000,
+      "cancel_delay_ms": 100,
+      "symbol": "GOOGL",
+      "expected_max_latency_ms": 3,
+      "measurement_points": ["CANCEL_REQUEST", "CANCEL_ACK"]
+    }
+  ],
+  "error_scenarios": [
+    {
+      "scenario": "invalid_symbol",
+      "orders": [
+        {
+          "symbol": "INVALID",
+          "side": "BUY",
+          "order_type": "LIMIT",
+          "quantity": 100,
+          "price": 100.00,
+          "expected_error": "INVALID_SYMBOL"
+        }
+      ]
+    },
+    {
+      "scenario": "invalid_price",
+      "orders": [
+        {
+          "symbol": "AAPL",
+          "side": "BUY",
+          "order_type": "LIMIT",
+          "quantity": 100,
+          "price": -10.00,
+          "expected_error": "INVALID_PRICE"
+        }
+      ]
+    },
+    {
+      "scenario": "invalid_quantity",
+      "orders": [
+        {
+          "symbol": "AAPL",
+          "side": "BUY",
+          "order_type": "LIMIT",
+          "quantity": 0,
+          "price": 195.50,
+          "expected_error": "INVALID_QUANTITY"
+        }
+      ]
+    },
+    {
+      "scenario": "insufficient_funds",
+      "orders": [
+        {
+          "symbol": "AAPL",
+          "side": "BUY",
+          "order_type": "LIMIT",
+          "quantity": 1000000,
+          "price": 195.50,
+          "account": "SMALL_ACCOUNT",
+          "expected_error": "INSUFFICIENT_FUNDS"
+        }
+      ]
+    },
+    {
+      "scenario": "position_limit_exceeded",
+      "orders": [
+        {
+          "symbol": "AAPL",
+          "side": "BUY",
+          "order_type": "LIMIT",
+          "quantity": 100000,
+          "price": 195.50,
+          "account": "LIMITED_ACCOUNT",
+          "expected_error": "POSITION_LIMIT_EXCEEDED"
+        }
+      ]
+    }
+  ],
+  "performance_benchmarks": {
+    "order_processing": {
+      "target_orders_per_second": 50000,
+      "max_order_latency_p99_ms": 10,
+      "max_order_latency_p95_ms": 5,
+      "max_order_latency_p50_ms": 2
+    },
+    "order_book_updates": {
+      "target_updates_per_second": 100000,
+      "max_update_latency_ms": 1,
+      "max_memory_per_symbol_mb": 10
+    },
+    "risk_checks": {
+      "max_risk_check_latency_ms": 1,
+      "risk_check_success_rate": 0.999
+    }
+  }
+}

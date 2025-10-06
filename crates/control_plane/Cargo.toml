@@ -1,0 +1,21 @@
+[package]
+name = "control_plane"
+version = "0.1.0"
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+tokio.workspace = true
+tonic.workspace = true
+prost.workspace = true
+tracing.workspace = true
+metrics.workspace = true
+metrics-exporter-prometheus.workspace = true
+common = { path = "../common" }
+serde.workspace = true
+serde_json.workspace = true
+
+[build-dependencies]
+tonic-build = "0.11"

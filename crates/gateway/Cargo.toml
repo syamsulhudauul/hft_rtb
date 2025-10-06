@@ -1,0 +1,23 @@
+[package]
+name = "gateway"
+version = "0.1.0"
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+bytes.workspace = true
+common = { path = "../common" }
+decoder = { path = "../decoder" }
+futures.workspace = true
+tokio.workspace = true
+tokio-util.workspace = true
+tokio-stream.workspace = true
+tracing.workspace = true
+metrics.workspace = true
+rdkafka = { workspace = true, optional = true }
+
+[features]
+default = []
+with-kafka = ["rdkafka"]

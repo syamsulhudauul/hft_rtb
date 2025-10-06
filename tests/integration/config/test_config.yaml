@@ -1,0 +1,278 @@
+# HFT RTB Integration Test Configuration
+
+# Default test environment configuration
+default:
+  hft:
+    host: "localhost"
+    gateway_port: 8080
+    metrics_port: 9090
+    admin_port: 9091
+    health_endpoint: "/health"
+    api_base_path: "/api/v1"
+  
+  kafka:
+    brokers: "localhost:9092"
+    topics:
+      market_data: "market-data"
+      orders: "orders"
+      trades: "trades"
+      positions: "positions"
+      test: "integration-test"
+    
+    # Kafka producer configuration for testing
+    producer:
+      acks: "all"
+      retries: 3
+      batch_size: 16384
+      linger_ms: 1
+      buffer_memory: 33554432
+      compression_type: "snappy"
+      max_request_size: 1048576
+    
+    # Kafka consumer configuration for testing
+    consumer:
+      group_id: "integration-test-group"
+      auto_offset_reset: "earliest"
+      enable_auto_commit: true
+      auto_commit_interval_ms: 1000
+      session_timeout_ms: 30000
+      max_poll_records: 500
+  
+  redis:
+    url: "redis://localhost:6379"
+    db: 0
+    timeout: 5
+    max_connections: 10
+  
+  # Test execution parameters
+  test_params:
+    default_timeout: 30
+    health_check_timeout: 10
+    api_timeout: 15
+    kafka_timeout: 20
+    redis_timeout: 5
+    
+    # Performance test parameters
+    performance:
+      message_rate: 1000  # messages per second
+      test_duration: 60   # seconds
+      concurrent_connections: 10
+      batch_size: 100
+      
+    # Load test parameters
+    load:
+      max_message_rate: 5000
+      ramp_up_duration: 30
+      sustained_duration: 300
+      max_concurrent_connections: 100
+      
+    # Latency test parameters
+    latency:
+      target_p50_ms: 5
+      target_p95_ms: 20
+      target_p99_ms: 50
+      max_avg_latency_ms: 10
+
+# Development environment (local development)
+development:
+  hft:
+    host: "localhost"
+    gateway_port: 8080
+    metrics_port: 9090
+    admin_port: 9091
+  
+  kafka:
+    brokers: "localhost:9092"
+  
+  redis:
+    url: "redis://localhost:6379"
+  
+  test_params:
+    default_timeout: 60
+    performance:
+      message_rate: 500
+      test_duration: 30
+    load:
+      max_message_rate: 2000
+      sustained_duration: 120
+
+# Staging environment
+staging:
+  hft:
+    host: "staging-hft.example.com"
+    gateway_port: 8080
+    metrics_port: 9090
+    admin_port: 9091
+  
+  kafka:
+    brokers: "staging-kafka1.example.com:9092,staging-kafka2.example.com:9092"
+  
+  redis:
+    url: "redis://staging-redis.example.com:6379"
+  
+  test_params:
+    default_timeout: 45
+    performance:
+      message_rate: 2000
+      test_duration: 120
+    load:
+      max_message_rate: 10000
+      sustained_duration: 600
+
+# Production-like environment (for load testing)
+production:
+  hft:
+    host: "prod-hft.example.com"
+    gateway_port: 8080
+    metrics_port: 9090
+    admin_port: 9091
+  
+  kafka:
+    brokers: "prod-kafka1.example.com:9092,prod-kafka2.example.com:9092,prod-kafka3.example.com:9092"
+    producer:
+      acks: "all"
+      retries: 5
+      batch_size: 32768
+      linger_ms: 0  # Minimize latency in production
+      compression_type: "lz4"
+  
+  redis:
+    url: "redis://prod-redis.example.com:6379"
+    max_connections: 50
+  
+  test_params:
+    default_timeout: 30
+    performance:
+      message_rate: 5000
+      test_duration: 300
+    load:
+      max_message_rate: 50000
+      sustained_duration: 1800
+      max_concurrent_connections: 500
+
+# Docker environment (for containerized testing)
+docker:
+  hft:
+    host: "hft-service"
+    gateway_port: 8080
+    metrics_port: 9090
+    admin_port: 9091
+  
+  kafka:
+    brokers: "kafka:9092"
+  
+  redis:
+    url: "redis://redis:6379"
+  
+  test_params:
+    default_timeout: 60  # Docker might be slower
+    health_check_timeout: 20
+
+# CI/CD environment
+ci:
+  hft:
+    host: "localhost"
+    gateway_port: 8080
+    metrics_port: 9090
+    admin_port: 9091
+  
+  kafka:
+    brokers: "localhost:9092"
+  
+  redis:
+    url: "redis://localhost:6379"
+  
+  test_params:
+    default_timeout: 120  # CI might be slower
+    performance:
+      message_rate: 100   # Reduced for CI
+      test_duration: 30
+    load:
+      max_message_rate: 500
+      sustained_duration: 60
+
+# Test data configuration
+test_data:
+  symbols:
+    - "AAPL"
+    - "GOOGL"
+    - "MSFT"
+    - "AMZN"
+    - "TSLA"
+    - "META"
+    - "NVDA"
+    - "NFLX"
+    - "AMD"
+    - "INTC"
+  
+  # Sample market data ranges
+  market_data:
+    price_range:
+      min: 50.0
+      max: 500.0
+    volume_range:
+      min: 100
+      max: 10000
+    spread_range:
+      min: 0.01
+      max: 1.0
+  
+  # Sample order data
+  orders:
+    sides: ["BUY", "SELL"]
+    order_types: ["MARKET", "LIMIT", "STOP"]
+    time_in_force: ["GTC", "IOC", "FOK"]
+    quantity_range:
+      min: 1
+      max: 1000
+
+# Monitoring and alerting thresholds
+monitoring:
+  health_check:
+    max_response_time_ms: 100
+    min_success_rate: 0.99
+  
+  api:
+    max_response_time_ms: 500
+    min_success_rate: 0.95
+  
+  kafka:
+    max_produce_latency_ms: 50
+    max_consume_latency_ms: 100
+    min_throughput_msg_per_sec: 1000
+  
+  system:
+    max_cpu_usage_percent: 80
+    max_memory_usage_percent: 85
+    max_disk_usage_percent: 90
+
+# Test reporting configuration
+reporting:
+  output_formats: ["json", "xml", "html"]
+  include_metrics: true
+  include_logs: true
+  retention_days: 30
+  
+  # Metrics to collect during tests
+  metrics:
+    - "http_requests_total"
+    - "http_request_duration_seconds"
+    - "kafka_producer_record_send_total"
+    - "kafka_consumer_records_consumed_total"
+    - "process_cpu_seconds_total"
+    - "process_resident_memory_bytes"
+    - "go_memstats_alloc_bytes"
+    - "go_goroutines"
+
+# Feature flags for tests
+features:
+  enable_performance_tests: true
+  enable_load_tests: true
+  enable_chaos_tests: false
+  enable_security_tests: false
+  enable_compatibility_tests: true
+  
+  # Experimental features
+  experimental:
+    enable_ml_tests: false
+    enable_blockchain_tests: false

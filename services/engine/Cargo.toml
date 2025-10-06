@@ -1,0 +1,22 @@
+[package]
+name = "engine"
+version = "0.1.0"
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+common = { path = "../../crates/common" }
+gateway = { path = "../../crates/gateway" }
+engine_core = { path = "../../crates/engine_core" }
+order_router = { path = "../../crates/order_router" }
+control_plane = { path = "../../crates/control_plane" }
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+metrics.workspace = true
+metrics-exporter-prometheus.workspace = true
+serde_json.workspace = true
+tonic.workspace = true
+uuid.workspace = true

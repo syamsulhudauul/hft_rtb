@@ -1,0 +1,17 @@
+[package]
+name = "loadgen"
+version = "0.1.0"
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+tokio.workspace = true
+bytes.workspace = true
+tokio-util.workspace = true
+rand.workspace = true
+common = { path = "../../crates/common" }
+tracing.workspace = true
+tracing-subscriber.workspace = true
+futures.workspace = true

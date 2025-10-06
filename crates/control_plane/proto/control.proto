@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package control;
+
+message ControlRequest {
+  string strategy = 1;
+  string params = 2;
+}
+
+message ControlResponse {
+  bool accepted = 1;
+  string message = 2;
+}
+
+service ControlService {
+  rpc UpdateStrategy(ControlRequest) returns (ControlResponse);
+}

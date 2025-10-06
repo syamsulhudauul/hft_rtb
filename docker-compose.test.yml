@@ -1,0 +1,94 @@
+version: '3.8'
+
+services:
+  # Minimal Kafka setup for testing
+  zookeeper-test:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: test-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  kafka-test:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: test-kafka
+    depends_on:
+      zookeeper-test:
+        condition: service_healthy
+    ports:
+      - "19092:19092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper-test:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-test:29092,PLAINTEXT_HOST://localhost:19092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:19092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_NUM_PARTITIONS: 4
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:19092"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # HFT Engine for testing
+  hft-engine-test:
+    build:
+      context: .
+      dockerfile: deploy/docker/engine.Dockerfile
+    container_name: test-hft-engine
+    ports:
+      - "17000:7000"   # TCP Gateway
+      - "19000:9000"   # Metrics
+      - "19100:9100"   # Admin gRPC
+    environment:
+      - RUST_LOG=debug
+      - GATEWAY_ADDR=0.0.0.0:7000
+      - METRICS_ADDR=0.0.0.0:9000
+      - ADMIN_ADDR=0.0.0.0:9100
+      - KAFKA_BROKERS=kafka-test:29092
+    depends_on:
+      kafka-test:
+        condition: service_healthy
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/metrics"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # Load generator for testing
+  loadgen-test:
+    build:
+      context: .
+      dockerfile: deploy/docker/loadgen.Dockerfile
+    container_name: test-loadgen
+    depends_on:
+      hft-engine-test:
+        condition: service_healthy
+    environment:
+      - TARGET_HOST=hft-engine-test:7000
+      - KAFKA_BROKERS=kafka-test:29092
+      - SYMBOLS=TEST1,TEST2,TEST3
+      - RATE=100
+      - DURATION=60s
+    networks:
+      - test-network
+
+networks:
+  test-network:
+    driver: bridge

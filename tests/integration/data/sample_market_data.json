@@ -1,0 +1,232 @@
+{
+  "market_data_samples": [
+    {
+      "symbol": "AAPL",
+      "timestamp": 1703001000000,
+      "bid_price": 195.50,
+      "ask_price": 195.52,
+      "bid_size": 500,
+      "ask_size": 300,
+      "last_price": 195.51,
+      "last_size": 100,
+      "volume": 1250000,
+      "vwap": 195.45,
+      "high": 196.20,
+      "low": 194.80,
+      "open": 195.10
+    },
+    {
+      "symbol": "GOOGL",
+      "timestamp": 1703001000000,
+      "bid_price": 142.30,
+      "ask_price": 142.35,
+      "bid_size": 200,
+      "ask_size": 150,
+      "last_price": 142.32,
+      "last_size": 50,
+      "volume": 890000,
+      "vwap": 142.28,
+      "high": 143.10,
+      "low": 141.50,
+      "open": 142.00
+    },
+    {
+      "symbol": "MSFT",
+      "timestamp": 1703001000000,
+      "bid_price": 378.90,
+      "ask_price": 378.95,
+      "bid_size": 300,
+      "ask_size": 250,
+      "last_price": 378.92,
+      "last_size": 75,
+      "volume": 750000,
+      "vwap": 378.85,
+      "high": 380.50,
+      "low": 377.20,
+      "open": 378.50
+    },
+    {
+      "symbol": "AMZN",
+      "timestamp": 1703001000000,
+      "bid_price": 153.80,
+      "ask_price": 153.85,
+      "bid_size": 400,
+      "ask_size": 350,
+      "last_price": 153.82,
+      "last_size": 120,
+      "volume": 980000,
+      "vwap": 153.75,
+      "high": 154.90,
+      "low": 152.60,
+      "open": 153.20
+    },
+    {
+      "symbol": "TSLA",
+      "timestamp": 1703001000000,
+      "bid_price": 248.50,
+      "ask_price": 248.60,
+      "bid_size": 600,
+      "ask_size": 400,
+      "last_price": 248.55,
+      "last_size": 200,
+      "volume": 2100000,
+      "vwap": 248.40,
+      "high": 250.80,
+      "low": 246.90,
+      "open": 247.50
+    }
+  ],
+  "tick_data_samples": [
+    {
+      "symbol": "AAPL",
+      "timestamp": 1703001001000,
+      "price": 195.51,
+      "size": 100,
+      "side": "BUY",
+      "exchange": "NASDAQ",
+      "condition": "REGULAR"
+    },
+    {
+      "symbol": "AAPL",
+      "timestamp": 1703001001100,
+      "price": 195.52,
+      "size": 200,
+      "side": "SELL",
+      "exchange": "NASDAQ",
+      "condition": "REGULAR"
+    },
+    {
+      "symbol": "AAPL",
+      "timestamp": 1703001001200,
+      "price": 195.50,
+      "size": 150,
+      "side": "BUY",
+      "exchange": "NASDAQ",
+      "condition": "REGULAR"
+    },
+    {
+      "symbol": "GOOGL",
+      "timestamp": 1703001001000,
+      "price": 142.32,
+      "size": 50,
+      "side": "BUY",
+      "exchange": "NASDAQ",
+      "condition": "REGULAR"
+    },
+    {
+      "symbol": "GOOGL",
+      "timestamp": 1703001001150,
+      "price": 142.35,
+      "size": 75,
+      "side": "SELL",
+      "exchange": "NASDAQ",
+      "condition": "REGULAR"
+    }
+  ],
+  "order_book_samples": [
+    {
+      "symbol": "AAPL",
+      "timestamp": 1703001000000,
+      "bids": [
+        {"price": 195.50, "size": 500, "orders": 3},
+        {"price": 195.49, "size": 800, "orders": 5},
+        {"price": 195.48, "size": 1200, "orders": 7},
+        {"price": 195.47, "size": 600, "orders": 4},
+        {"price": 195.46, "size": 900, "orders": 6}
+      ],
+      "asks": [
+        {"price": 195.52, "size": 300, "orders": 2},
+        {"price": 195.53, "size": 700, "orders": 4},
+        {"price": 195.54, "size": 1000, "orders": 6},
+        {"price": 195.55, "size": 400, "orders": 3},
+        {"price": 195.56, "size": 800, "orders": 5}
+      ]
+    },
+    {
+      "symbol": "GOOGL",
+      "timestamp": 1703001000000,
+      "bids": [
+        {"price": 142.30, "size": 200, "orders": 2},
+        {"price": 142.29, "size": 350, "orders": 3},
+        {"price": 142.28, "size": 500, "orders": 4},
+        {"price": 142.27, "size": 250, "orders": 2},
+        {"price": 142.26, "size": 400, "orders": 3}
+      ],
+      "asks": [
+        {"price": 142.35, "size": 150, "orders": 1},
+        {"price": 142.36, "size": 300, "orders": 2},
+        {"price": 142.37, "size": 450, "orders": 3},
+        {"price": 142.38, "size": 200, "orders": 2},
+        {"price": 142.39, "size": 350, "orders": 3}
+      ]
+    }
+  ],
+  "stress_test_scenarios": [
+    {
+      "name": "high_frequency_updates",
+      "description": "Rapid price updates to test system responsiveness",
+      "symbol": "AAPL",
+      "duration_seconds": 60,
+      "update_frequency_ms": 10,
+      "price_volatility": 0.001,
+      "volume_range": [50, 500]
+    },
+    {
+      "name": "large_order_impact",
+      "description": "Large orders affecting market depth",
+      "symbol": "GOOGL",
+      "duration_seconds": 30,
+      "order_sizes": [5000, 10000, 15000],
+      "price_impact": 0.005
+    },
+    {
+      "name": "multi_symbol_burst",
+      "description": "Simultaneous updates across multiple symbols",
+      "symbols": ["AAPL", "GOOGL", "MSFT", "AMZN", "TSLA"],
+      "duration_seconds": 120,
+      "burst_frequency_ms": 50,
+      "messages_per_burst": 10
+    }
+  ],
+  "latency_test_data": [
+    {
+      "test_name": "single_symbol_latency",
+      "symbol": "AAPL",
+      "message_count": 1000,
+      "expected_max_latency_ms": 5,
+      "message_pattern": "sequential"
+    },
+    {
+      "test_name": "multi_symbol_latency",
+      "symbols": ["AAPL", "GOOGL", "MSFT"],
+      "message_count": 3000,
+      "expected_max_latency_ms": 10,
+      "message_pattern": "round_robin"
+    },
+    {
+      "test_name": "burst_latency",
+      "symbol": "TSLA",
+      "message_count": 500,
+      "burst_size": 50,
+      "expected_max_latency_ms": 20,
+      "message_pattern": "burst"
+    }
+  ],
+  "performance_benchmarks": {
+    "throughput": {
+      "target_messages_per_second": 10000,
+      "max_latency_p99_ms": 50,
+      "max_latency_p95_ms": 20,
+      "max_latency_p50_ms": 5
+    },
+    "memory": {
+      "max_heap_size_mb": 512,
+      "max_gc_pause_ms": 10,
+      "max_memory_growth_rate": 0.1
+    },
+    "cpu": {
+      "max_cpu_usage_percent": 80,
+      "max_context_switches_per_second": 10000
+    }
+  }
+}
