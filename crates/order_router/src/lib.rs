@@ -36,14 +36,14 @@ impl OrderRouter {
 
     #[instrument(skip(self, action))]
     pub async fn dispatch(&mut self, action: Action) -> Result<(), PipelineError> {
-        match &action.kind {
+        match action.kind.clone() {
             ActionKind::Hold => {
                 counter!("router.hold", 1);
                 Ok(())
             }
-            ActionKind::Cancel { venue } => self.send(venue, action).await,
+            ActionKind::Cancel { venue } => self.send(&venue, action).await,
             ActionKind::Bid { venue, .. } | ActionKind::Ask { venue, .. } => {
-                self.send(venue, action).await
+                self.send(&venue, action).await
             }
         }
     }

@@ -1,7 +1,7 @@
-use anyhow::{Context, Result};
+use anyhow::Result;
 use rdkafka::config::ClientConfig;
 use rdkafka::consumer::{Consumer, StreamConsumer};
-use rdkafka::producer::{FutureProducer, FutureRecord};
+use rdkafka::producer::{FutureProducer, FutureRecord, Producer};
 use rdkafka::Message;
 use std::time::Duration;
 use tracing::{info, warn};
@@ -69,7 +69,8 @@ pub async fn run_kafka_tests(config: &TestConfig, results: &mut TestResults) -> 
     let test_message = TestMessage::new(&test_symbols[0], 150.25, 100);
     let tick = test_message.to_tick();
     
-    let payload = match bincode::serialize(&tick) {
+    let owned_tick = tick.to_owned_tick();
+    let payload = match bincode::serialize(&owned_tick) {
         Ok(data) => data,
         Err(e) => {
             results.fail("Message Serialization", &e.to_string());
@@ -98,7 +99,7 @@ pub async fn run_kafka_tests(config: &TestConfig, results: &mut TestResults) -> 
             }
         }
         Err(e) => {
-            results.fail("Message Production", &e.to_string());
+            results.fail("Message Production", &format!("{:?}", e));
             results.skip("Production Latency", "Production failed");
             results.skip("Message Consumption", "No message to consume");
             return Ok(());
@@ -118,7 +119,7 @@ pub async fn run_kafka_tests(config: &TestConfig, results: &mut TestResults) -> 
             
             // Test 6: Message Content Validation
             if let Some(payload) = message.payload() {
-                match bincode::deserialize::<common::Tick>(payload) {
+                match bincode::deserialize::<common::OwnedTick>(payload) {
                     Ok(received_tick) => {
                         results.pass("Message Deserialization");
                         
@@ -171,13 +172,15 @@ pub async fn run_kafka_tests(config: &TestConfig, results: &mut TestResults) -> 
     let batch_start = std::time::Instant::now();
     for i in 0..batch_size {
         let symbol = &test_symbols[i % test_symbols.len()];
-        let test_msg = TestMessage::new(symbol, 100.0 + i as f64, 50 + i);
+        let test_msg = TestMessage::new(symbol, 100.0 + i as f64, 50 + i as u64);
         let tick = test_msg.to_tick();
+        let owned_tick = tick.to_owned_tick();
         
-        if let Ok(payload) = bincode::serialize(&tick) {
+        if let Ok(payload) = bincode::serialize(&owned_tick) {
+            let payload_ref: &'static [u8] = Box::leak(payload.into_boxed_slice());
             let record = FutureRecord::to(test_topic)
                 .key(symbol)
-                .payload(&payload);
+                .payload(payload_ref);
             
             batch_futures.push(producer.send(record, Duration::from_secs(5)));
         }
@@ -212,8 +215,9 @@ pub async fn run_kafka_tests(config: &TestConfig, results: &mut TestResults) -> 
     for symbol in &test_symbols[0..3] { // Test first 3 symbols
         let test_msg = TestMessage::new(symbol, 200.0, 75);
         let tick = test_msg.to_tick();
+        let owned_tick = tick.to_owned_tick();
         
-        if let Ok(payload) = bincode::serialize(&tick) {
+        if let Ok(payload) = bincode::serialize(&owned_tick) {
             let record = FutureRecord::to(test_topic)
                 .key(symbol)
                 .payload(&payload);
@@ -224,7 +228,7 @@ pub async fn run_kafka_tests(config: &TestConfig, results: &mut TestResults) -> 
                     info!("Successfully sent message for symbol: {}", symbol);
                 }
                 Err(e) => {
-                    warn!("Failed to send message for symbol {}: {}", symbol, e);
+                    warn!("Failed to send message for symbol {}: {:?}", symbol, e);
                 }
             }
         }

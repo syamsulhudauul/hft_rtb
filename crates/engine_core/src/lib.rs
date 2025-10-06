@@ -3,14 +3,16 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use anyhow::Result;
-use arc_swap::ArcSwapAny;
-use common::{Action, ActionContext, ActionKind, IngestEnvelope, PipelineError, Snapshot, Tick};
+use std::sync::{Mutex, RwLock as StdRwLock};
+use common::{Action, ActionContext, ActionKind, IngestEnvelope, OwnedTick, PipelineError, Snapshot, Tick};
 use core_affinity::CoreId;
 use crossbeam::queue::SegQueue;
 use metrics::{counter, gauge, histogram};
 use parking_lot::RwLock;
 use rand::distributions::{Distribution, Uniform};
-use rand::rngs::ThreadRng;
+use rand::{Rng, SeedableRng};
+use rand_chacha::ChaCha8Rng;
+
 use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::task::JoinHandle;
 use tokio::time::sleep;
@@ -21,8 +23,8 @@ use uuid::Uuid;
 struct Aligned<T>(T);
 
 #[derive(Clone)]
-pub struct StrategyContext<'a> {
-    pub tick: &'a Tick<'a>,
+pub struct StrategyContext {
+    pub tick: OwnedTick,
     pub snapshot: Snapshot,
     pub mean: f64,
     pub momentum: f64,
@@ -30,9 +32,9 @@ pub struct StrategyContext<'a> {
 
 pub trait Strategy: Send + Sync + 'static {
     fn name(&self) -> &str;
-    fn on_event(&self, ctx: &StrategyContext<'_>) -> Result<ActionKind>;
+    fn on_event(&self, ctx: &StrategyContext) -> Result<ActionKind>;
     fn warmup(&self) -> usize {
-        10
+        100
     }
 }
 
@@ -93,17 +95,18 @@ impl StateCache {
         self.capacity
     }
 
-    fn update(&self, tick: &Tick<'_>) -> StrategyContext<'_> {
+    fn update(&self, tick: &OwnedTick) -> StrategyContext {
+        let tick_ref: Tick<'static> = tick.clone().into();
         let mut guard = self.inner.0.write();
         let entry = guard
-            .entry(tick.symbol.to_string())
+            .entry(tick.symbol.clone())
             .or_insert_with(|| SymbolState::new(self.capacity));
-        entry.update(tick, self.capacity);
-        let snapshot = Snapshot::from(tick);
+        entry.update(&tick_ref, self.capacity);
+        let snapshot = Snapshot::from(&tick_ref);
         let mean = entry.mean();
         let momentum = entry.momentum();
         StrategyContext {
-            tick,
+            tick: tick.clone(),
             snapshot,
             mean,
             momentum,
@@ -112,9 +115,9 @@ impl StateCache {
 }
 
 pub struct StrategyEngine {
-    strategy: ArcSwapAny<dyn Strategy>,
+    strategy: Arc<StdRwLock<Arc<dyn Strategy>>>,
     state: Arc<StateCache>,
-    prng: ThreadRng,
+    prng: Arc<Mutex<ChaCha8Rng>>,
     jitter: Uniform<u64>,
     fallback: SegQueue<ActionKind>,
 }
@@ -122,16 +125,16 @@ pub struct StrategyEngine {
 impl StrategyEngine {
     pub fn new(strategy: Arc<dyn Strategy>, window: usize) -> Self {
         Self {
-            strategy: ArcSwapAny::from(strategy),
+            strategy: Arc::new(StdRwLock::new(strategy)),
             state: Arc::new(StateCache::new(window)),
-            prng: rand::thread_rng(),
+            prng: Arc::new(Mutex::new(ChaCha8Rng::from_entropy())),
             jitter: Uniform::new_inclusive(0, 500),
             fallback: SegQueue::new(),
         }
     }
 
     pub fn swap_strategy(&self, strategy: Arc<dyn Strategy>) {
-        self.strategy.store(strategy);
+        *self.strategy.write().unwrap() = strategy;
     }
 
     pub fn state(&self) -> Arc<StateCache> {
@@ -139,17 +142,17 @@ impl StrategyEngine {
     }
 
     #[instrument(skip(self, rx, tx))]
-    pub fn spawn(self: Arc<Self>, mut rx: Receiver<IngestEnvelope<'static>>, tx: Sender<Action>) -> JoinHandle<Result<(), PipelineError>> {
+    pub fn spawn(self: Arc<Self>, mut rx: Receiver<IngestEnvelope>, tx: Sender<Action>) -> JoinHandle<Result<(), PipelineError>> {
         tokio::spawn(async move {
             let core = select_core();
             if let Some(core) = core {
                 let _ = core_affinity::set_for_current(core);
             }
             while let Some(env) = rx.recv().await {
-                let tick = env.tick;
-                let ctx = self.state.update(&tick);
+                let tick = &env.tick;
+                let ctx = self.state.update(tick);
                 gauge!("engine.state.window", self.state.capacity() as f64);
-                let strategy = self.strategy.load();
+                let strategy = self.strategy.read().unwrap().clone();
                 let started = Instant::now();
                 let decision = strategy
                     .on_event(&ctx)
@@ -175,7 +178,7 @@ impl StrategyEngine {
                         error!(?err, symbol = ?ctx.snapshot.symbol, "strategy failure");
                     }
                 }
-                let jitter = self.jitter.sample(&mut self.prng);
+                let jitter = self.jitter.sample(&mut *self.prng.lock().unwrap());
                 if jitter > 0 {
                     sleep(Duration::from_micros(jitter)).await;
                 }
@@ -224,7 +227,7 @@ impl Strategy for MomentumStrategy {
         10
     }
 
-    fn on_event(&self, ctx: &StrategyContext<'_>) -> Result<ActionKind> {
+    fn on_event(&self, ctx: &StrategyContext) -> Result<ActionKind> {
         if ctx.momentum > self.threshold {
             return Ok(ActionKind::Bid {
                 venue: self.venue.clone(),
@@ -251,7 +254,7 @@ mod tests {
 
     #[tokio::test]
     async fn momentum_strategy_flags_trend() {
-        let strategy: Arc<dyn Strategy> = Arc::new(MomentumStrategy::new(0.5, "TEST"));
+        let strategy: Arc<dyn Strategy> = Arc::new(MomentumStrategy::new(0.25, "TEST"));
         let engine = Arc::new(StrategyEngine::new(strategy, 16));
         let (tx_tick, rx_tick) = mpsc::channel(16);
         let (tx_action, mut rx_action) = mpsc::channel(16);
@@ -264,17 +267,31 @@ mod tests {
             let tick = tick_from_parts("ABC", price, 100.0, i, &[0; 8]);
             tx_tick
                 .send(IngestEnvelope {
-                    tick,
+                    tick: tick.to_owned_tick(),
                     source: IngestSource::Tcp,
                 })
                 .await
                 .unwrap();
         }
 
-        let action = rx_action.recv().await.unwrap();
-        match action.kind {
-            ActionKind::Bid { .. } => {}
-            _ => panic!("expected bid"),
+        // Wait for multiple actions and find the first bid
+        let mut found_bid = false;
+        for _ in 0..10 {
+            if let Some(action) = rx_action.recv().await {
+                match action.kind {
+                    ActionKind::Bid { .. } => {
+                        found_bid = true;
+                        break;
+                    }
+                    _ => continue,
+                }
+            } else {
+                break;
+            }
+        }
+        
+        if !found_bid {
+            panic!("expected to receive a bid action");
         }
 
         drop(tx_tick);

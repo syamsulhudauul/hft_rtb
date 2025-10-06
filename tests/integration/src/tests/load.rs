@@ -205,7 +205,7 @@ pub async fn run_load_tests(config: &TestConfig, results: &mut TestResults) -> R
         info!("Collected {} metric samples over {:?}", metric_samples.len(), monitoring_duration);
         
         // Analyze resource usage trends
-        let mut memory_stable = true;
+        let memory_stable = true;
         let mut latency_reasonable = true;
         
         for (i, sample) in metric_samples.iter().enumerate() {
@@ -294,14 +294,11 @@ async fn run_throughput_test(config: &TestConfig, target_rate: u64, duration: Du
     let mut message_count = 0;
     
     while start_time.elapsed() < duration {
-        let symbol = &test_symbols[message_count % test_symbols.len()];
-        let test_message = TestMessage::new(symbol, 100.0 + message_count as f64, 50);
+        let symbol = test_symbols[message_count % test_symbols.len()].clone();
+        let test_message = TestMessage::new(&symbol, 100.0 + message_count as f64, 50);
         let tick = test_message.to_tick();
-        let payload = bincode::serialize(&tick)?;
-        
-        let record = FutureRecord::to("load-test")
-            .key(symbol)
-            .payload(&payload);
+        let owned_tick = tick.to_owned_tick();
+        let payload = bincode::serialize(&owned_tick)?;
         
         let producer_clone = producer.clone();
         let successful_clone = successful_sends.clone();
@@ -309,6 +306,10 @@ async fn run_throughput_test(config: &TestConfig, target_rate: u64, duration: Du
         let latency_clone = total_latency_ns.clone();
         
         let handle = tokio::spawn(async move {
+            let record = FutureRecord::to("load-test")
+                .key(&symbol)
+                .payload(&payload);
+                
             let send_start = Instant::now();
             total_clone.fetch_add(1, Ordering::Relaxed);
             
@@ -374,19 +375,20 @@ async fn run_burst_test(config: &TestConfig) -> Result<BurstStats> {
     
     // Send burst of messages as fast as possible
     for i in 0..burst_size {
-        let symbol = &test_symbols[i % test_symbols.len()];
-        let test_message = TestMessage::new(symbol, 100.0 + i as f64, 50);
+        let symbol = test_symbols[i % test_symbols.len()].clone();
+        let test_message = TestMessage::new(&symbol, 100.0 + i as f64, 50);
         let tick = test_message.to_tick();
-        let payload = bincode::serialize(&tick)?;
-        
-        let record = FutureRecord::to("burst-test")
-            .key(symbol)
-            .payload(&payload);
+        let owned_tick = tick.to_owned_tick();
+        let payload = bincode::serialize(&owned_tick)?;
         
         let producer_clone = producer.clone();
         let successful_clone = successful_sends.clone();
         
         let handle = tokio::spawn(async move {
+            let record = FutureRecord::to("burst-test")
+                .key(&symbol)
+                .payload(&payload);
+                
             if let Ok(_) = producer_clone.send(record, Duration::from_millis(50)).await {
                 successful_clone.fetch_add(1, Ordering::Relaxed);
             }
@@ -407,7 +409,7 @@ async fn run_burst_test(config: &TestConfig) -> Result<BurstStats> {
     let success_rate = successful as f64 / burst_size as f64;
     
     Ok(BurstStats {
-        total_messages: burst_size,
+        total_messages: burst_size as u64,
         success_rate,
         peak_rate,
         duration_secs: duration.as_secs_f64(),
@@ -469,17 +471,19 @@ async fn run_multi_symbol_test(config: &TestConfig) -> Result<MultiSymbolStats> 
     
     for (symbol_idx, symbol) in test_symbols.iter().enumerate() {
         for i in 0..messages_per_symbol {
-            let test_message = TestMessage::new(symbol, 100.0 + i as f64, 50);
+            let symbol_owned = symbol.clone();
+            let test_message = TestMessage::new(&symbol_owned, 100.0 + i as f64, 50);
             let tick = test_message.to_tick();
-            let payload = bincode::serialize(&tick)?;
-            
-            let record = FutureRecord::to("multi-symbol-test")
-                .key(symbol)
-                .payload(&payload);
+            let owned_tick = tick.to_owned_tick();
+            let payload = bincode::serialize(&owned_tick)?;
             
             let producer_clone = producer.clone();
             
             let handle = tokio::spawn(async move {
+                let record = FutureRecord::to("multi-symbol-test")
+                    .key(&symbol_owned)
+                    .payload(&payload);
+                    
                 match producer_clone.send(record, Duration::from_millis(100)).await {
                     Ok(_) => (symbol_idx, true),
                     Err(_) => (symbol_idx, false),

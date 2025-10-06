@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::Result;
 use clap::{Arg, Command};
 use std::time::{Duration, Instant};
 use tracing::{error, info, warn};
@@ -31,14 +31,14 @@ async fn main() -> Result<()> {
                 .long("gateway-port")
                 .value_name("PORT")
                 .help("Gateway port")
-                .default_value("7000"),
+                .default_value("7001"),
         )
         .arg(
             Arg::new("metrics-port")
                 .long("metrics-port")
                 .value_name("PORT")
                 .help("Metrics port")
-                .default_value("9000"),
+                .default_value("9002"),
         )
         .arg(
             Arg::new("admin-port")
@@ -186,9 +186,9 @@ impl TestResults {
 }
 
 fn print_test_summary(results: &TestResults, duration: Duration) {
-    println!("\n" + "=".repeat(60).as_str());
+    println!("\n{}", "=".repeat(60));
     println!("🧪 HFT RTB Integration Test Summary");
-    println!("=".repeat(60));
+    println!("{}", "=".repeat(60));
     println!("⏱️  Total Duration: {:.2}s", duration.as_secs_f64());
     println!("✅ Passed: {}", results.passed);
     println!("❌ Failed: {}", results.failed);
@@ -202,7 +202,7 @@ fn print_test_summary(results: &TestResults, duration: Duration) {
         }
     }
     
-    println!("=".repeat(60));
+    println!("{}", "=".repeat(60));
     
     if results.has_failures() {
         println!("❌ Some tests failed!");

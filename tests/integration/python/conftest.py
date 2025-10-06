@@ -21,9 +21,9 @@ logger = logging.getLogger(__name__)
 # Test configuration
 DEFAULT_CONFIG = {
     "hft_host": "localhost",
-    "hft_gateway_port": 8080,
-    "hft_metrics_port": 9090,
-    "hft_admin_port": 50051,
+    "hft_gateway_port": 7001,
+    "hft_metrics_port": 9002,
+    "hft_admin_port": 9100,
     "kafka_brokers": "localhost:9092",
     "redis_url": "redis://localhost:6379",
     "test_timeout": 30,

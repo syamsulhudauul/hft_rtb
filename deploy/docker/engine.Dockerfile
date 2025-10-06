@@ -1,39 +1,32 @@
 # Multi-stage build for optimized HFT RTB Engine
-FROM rust:1.75-slim as builder
+FROM rust:1.80-slim as builder
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y \
     pkg-config \
     libssl-dev \
     ca-certificates \
+    protobuf-compiler \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
 # Copy dependency manifests first for better layer caching
-COPY Cargo.toml Cargo.lock ./
-COPY crates/*/Cargo.toml ./crates/
-COPY services/*/Cargo.toml ./services/
-COPY tools/*/Cargo.toml ./tools/
+COPY Cargo.toml ./
 
-# Create dummy source files to build dependencies
-RUN find . -name "Cargo.toml" -exec dirname {} \; | \
-    xargs -I {} sh -c 'mkdir -p {}/src && echo "fn main() {}" > {}/src/main.rs || echo "pub fn dummy() {}" > {}/src/lib.rs'
-
-# Build dependencies (this layer will be cached)
-RUN cargo build --release --package engine
-
-# Remove dummy source files
-RUN find . -name "src" -type d -exec rm -rf {} + 2>/dev/null || true
+# Copy all crate directories with their Cargo.toml files
+COPY crates/ ./crates/
+COPY services/ ./services/
+COPY tools/ ./tools/
 
 # Copy actual source code
 COPY . .
 
-# Touch source files to ensure rebuild
-RUN find . -name "*.rs" -exec touch {} +
+# Generate Cargo.lock file
+RUN cargo generate-lockfile
 
 # Build the actual application with optimizations for HFT
-ENV RUSTFLAGS="-C target-cpu=native -C opt-level=3 -C lto=fat -C codegen-units=1"
+ENV RUSTFLAGS="-C target-cpu=native -C opt-level=3 -C codegen-units=1"
 RUN cargo build --release --package engine
 
 # Runtime stage with minimal footprint

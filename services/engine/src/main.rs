@@ -24,7 +24,7 @@ async fn main() -> Result<()> {
 
     control_plane::init_metrics(metrics_addr).await?;
 
-    let (ingest_tx, ingest_rx) = mpsc::channel::<IngestEnvelope<'static>>(1024);
+    let (ingest_tx, ingest_rx) = mpsc::channel::<IngestEnvelope>(1024);
     let (action_tx, action_rx) = mpsc::channel::<Action>(1024);
 
     let strategy: Arc<dyn Strategy> = Arc::new(MomentumStrategy::new(0.5, "SIM"));

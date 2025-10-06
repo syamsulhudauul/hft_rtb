@@ -9,9 +9,9 @@ services:
     container_name: hft-rtb-engine
     restart: unless-stopped
     ports:
-      - "7000:7000"   # TCP Gateway
-      - "9000:9000"   # Metrics
-      - "9100:9100"   # Admin gRPC
+      - "7001:7000"  # TCP Gateway
+      - "9002:9000"  # Metrics
+      - "9100:9100"  # Admin gRPC
     environment:
       - RUST_LOG=info
       - GATEWAY_ADDR=0.0.0.0:7000

@@ -2,7 +2,7 @@ use anyhow::Result;
 use rdkafka::config::ClientConfig;
 use rdkafka::consumer::{Consumer, StreamConsumer};
 use rdkafka::producer::{FutureProducer, FutureRecord};
-use rdkafka::Message;
+
 use std::time::{Duration, Instant};
 use tracing::{info, warn};
 use uuid::Uuid;
@@ -70,7 +70,8 @@ pub async fn run_latency_tests(config: &TestConfig, results: &mut TestResults) -
     let test_message = TestMessage::new(&test_symbols[0], 100.0, 50);
     let tick = test_message.to_tick();
     
-    let payload = bincode::serialize(&tick).unwrap();
+    let owned_tick = tick.to_owned_tick();
+    let payload = bincode::serialize(&owned_tick).unwrap();
     let record = FutureRecord::to(test_topic)
         .key(&test_message.symbol)
         .payload(&payload);
@@ -93,7 +94,7 @@ pub async fn run_latency_tests(config: &TestConfig, results: &mut TestResults) -
             }
         }
         Err(e) => {
-            results.fail("Single Message Send", &e.to_string());
+            results.fail("Single Message Send", &format!("{:?}", e));
             results.skip("Send Latency Tests", "Send failed");
         }
     }
@@ -105,7 +106,8 @@ pub async fn run_latency_tests(config: &TestConfig, results: &mut TestResults) -
     // Send message
     let test_message = TestMessage::new(&test_symbols[1], 101.0, 51);
     let tick = test_message.to_tick();
-    let payload = bincode::serialize(&tick).unwrap();
+    let owned_tick = tick.to_owned_tick();
+    let payload = bincode::serialize(&owned_tick).unwrap();
     let record = FutureRecord::to(test_topic)
         .key(&test_message.symbol)
         .payload(&payload);
@@ -148,9 +150,10 @@ pub async fn run_latency_tests(config: &TestConfig, results: &mut TestResults) -
     
     for i in 0..batch_size {
         let symbol = &test_symbols[i % test_symbols.len()];
-        let test_message = TestMessage::new(symbol, 100.0 + i as f64, 50 + i);
+        let test_message = TestMessage::new(symbol, 100.0 + i as f64, 50 + i as u64);
         let tick = test_message.to_tick();
-        let payload = bincode::serialize(&tick).unwrap();
+        let owned_tick = tick.to_owned_tick();
+        let payload = bincode::serialize(&owned_tick).unwrap();
         
         let record = FutureRecord::to(test_topic)
             .key(symbol)
@@ -162,7 +165,7 @@ pub async fn run_latency_tests(config: &TestConfig, results: &mut TestResults) -
                 send_latencies.push(send_start.elapsed());
             }
             Err(e) => {
-                warn!("Batch send {} failed: {}", i, e);
+                warn!("Batch send {} failed: {:?}", i, e);
             }
         }
     }
@@ -216,7 +219,8 @@ pub async fn run_latency_tests(config: &TestConfig, results: &mut TestResults) -
         let symbol = &test_symbols[message_count % test_symbols.len()];
         let test_message = TestMessage::new(symbol, 100.0 + message_count as f64, 50);
         let tick = test_message.to_tick();
-        let payload = bincode::serialize(&tick).unwrap();
+        let owned_tick = tick.to_owned_tick();
+        let payload = bincode::serialize(&owned_tick).unwrap();
         
         let record = FutureRecord::to(test_topic)
             .key(symbol)
@@ -228,7 +232,7 @@ pub async fn run_latency_tests(config: &TestConfig, results: &mut TestResults) -
                 sustained_latencies.push(send_start.elapsed());
             }
             Err(e) => {
-                warn!("Sustained test message {} failed: {}", message_count, e);
+                warn!("Sustained test message {} failed: {:?}", message_count, e);
             }
         }
         
@@ -239,7 +243,7 @@ pub async fn run_latency_tests(config: &TestConfig, results: &mut TestResults) -
     let actual_duration = sustained_start.elapsed();
     let actual_rate = sustained_latencies.len() as f64 / actual_duration.as_secs_f64();
     
-    if sustained_latencies.len() >= target_rate * 8 { // 80% of expected messages
+    if sustained_latencies.len() >= (target_rate * 8) as usize { // 80% of expected messages
         results.pass("Sustained Latency Test Completion");
         info!("Sustained test: {} messages in {:?} ({:.1} msg/s)", sustained_latencies.len(), actual_duration, actual_rate);
         
@@ -307,7 +311,8 @@ pub async fn run_latency_tests(config: &TestConfig, results: &mut TestResults) -
                 let symbol = &symbols[i % symbols.len()];
                 let test_message = TestMessage::new(symbol, 100.0 + i as f64, 50);
                 let tick = test_message.to_tick();
-                let payload = bincode::serialize(&tick).unwrap();
+                let owned_tick = tick.to_owned_tick();
+                let payload = bincode::serialize(&owned_tick).unwrap();
                 
                 let record = FutureRecord::to("latency-test")
                     .key(symbol)
@@ -333,8 +338,9 @@ pub async fn run_latency_tests(config: &TestConfig, results: &mut TestResults) -
             Ok((producer_id, latencies)) => {
                 if !latencies.is_empty() {
                     successful_producers += 1;
+                    let message_count = latencies.len();
                     all_load_latencies.extend(latencies);
-                    info!("Producer {} completed with {} messages", producer_id, latencies.len());
+                    info!("Producer {} completed with {} messages", producer_id, message_count);
                 }
             }
             Err(e) => {

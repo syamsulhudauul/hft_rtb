@@ -10,7 +10,9 @@ pub struct TestConfig {
     pub metrics_port: u16,
     pub admin_port: u16,
     pub kafka_brokers: String,
+    #[allow(dead_code)]
     pub redis_url: String,
+    #[allow(dead_code)]
     pub test_duration: Duration,
     pub message_rate: u64,
 }
@@ -24,6 +26,7 @@ impl TestConfig {
         format!("http://{}:{}/metrics", self.host, self.metrics_port)
     }
 
+    #[allow(dead_code)]
     pub fn admin_url(&self) -> String {
         format!("http://{}:{}", self.host, self.admin_port)
     }
@@ -73,13 +76,14 @@ impl TestMessage {
         }
     }
 
-    pub fn to_tick(&self) -> common::Tick {
+    pub fn to_tick(&self) -> common::Tick<'static> {
+        use std::borrow::Cow;
         common::Tick {
-            symbol: self.symbol.clone(),
+            symbol: Cow::Owned(self.symbol.clone()),
             price: self.price,
-            size: self.size,
-            timestamp: self.timestamp,
-            raw_data: vec![],
+            size: self.size as f64,
+            ts: self.timestamp,
+            raw: Cow::Owned(vec![]),
         }
     }
 }

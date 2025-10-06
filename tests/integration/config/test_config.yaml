@@ -4,9 +4,9 @@
 default:
   hft:
     host: "localhost"
-    gateway_port: 8080
-    metrics_port: 9090
-    admin_port: 9091
+    gateway_port: 7001
+    metrics_port: 9002
+    admin_port: 9100
     health_endpoint: "/health"
     api_base_path: "/api/v1"
   

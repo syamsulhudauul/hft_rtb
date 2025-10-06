@@ -15,7 +15,7 @@ pub fn decode_bytes(bytes: Bytes) -> Result<Tick<'static>> {
     let len = bytes.len();
     let mut slice = bytes.clone();
     let owned = slice.copy_to_bytes(len);
-    decode_tick(&owned)?.owned()
+    Ok(decode_tick(&owned)?.owned())
 }
 
 pub fn decode_batch<'a>(frames: impl Iterator<Item = &'a [u8]>) -> Result<Vec<Tick<'a>>> {
@@ -23,7 +23,7 @@ pub fn decode_batch<'a>(frames: impl Iterator<Item = &'a [u8]>) -> Result<Vec<Ti
 }
 
 pub fn cache_aligned_buffer(size: usize) -> Vec<u8> {
-    let mut bump = SCRATCH.lock();
+    let bump = SCRATCH.lock();
     let slice = bump.alloc_slice_fill_with(size, |_| 0u8);
     slice.to_vec()
 }

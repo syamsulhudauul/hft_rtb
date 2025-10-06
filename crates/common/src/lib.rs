@@ -8,16 +8,22 @@ use uuid::Uuid;
 
 pub type Symbol<'a> = Cow<'a, str>;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(borrow)]
+#[derive(Debug, Clone)]
 pub struct Tick<'a> {
-    #[serde(borrow)]
     pub symbol: Symbol<'a>,
     pub price: f64,
     pub size: f64,
     pub ts: u64,
-    #[serde(borrow)]
     pub raw: Cow<'a, [u8]>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct OwnedTick {
+    pub symbol: String,
+    pub price: f64,
+    pub size: f64,
+    pub ts: u64,
+    pub raw: Vec<u8>,
 }
 
 impl<'a> Tick<'a> {
@@ -33,6 +39,34 @@ impl<'a> Tick<'a> {
 
     pub fn into_bytes(self) -> Bytes {
         Bytes::from(self.raw.into_owned())
+    }
+
+    pub fn to_owned_tick(&self) -> OwnedTick {
+        OwnedTick {
+            symbol: self.symbol.to_string(),
+            price: self.price,
+            size: self.size,
+            ts: self.ts,
+            raw: self.raw.to_vec(),
+        }
+    }
+}
+
+impl From<OwnedTick> for Tick<'static> {
+    fn from(owned: OwnedTick) -> Self {
+        Tick {
+            symbol: Cow::Owned(owned.symbol),
+            price: owned.price,
+            size: owned.size,
+            ts: owned.ts,
+            raw: Cow::Owned(owned.raw),
+        }
+    }
+}
+
+impl<'a> From<&Tick<'a>> for OwnedTick {
+    fn from(tick: &Tick<'a>) -> Self {
+        tick.to_owned_tick()
     }
 }
 
@@ -69,14 +103,16 @@ pub enum PipelineError {
 }
 
 pub fn encode_tick<'a>(tick: &Tick<'a>) -> Result<Vec<u8>, bincode::Error> {
-    bincode::serialize(tick)
+    let owned_tick = tick.to_owned_tick();
+    bincode::serialize(&owned_tick)
 }
 
-pub fn decode_tick<'a>(data: &'a [u8]) -> Result<Tick<'a>, bincode::Error> {
-    bincode::deserialize(data)
+pub fn decode_tick(data: &[u8]) -> Result<Tick<'static>, bincode::Error> {
+    let owned_tick: OwnedTick = bincode::deserialize(data)?;
+    Ok(owned_tick.into())
 }
 
-pub fn tick_from_parts(symbol: &str, price: f64, size: f64, ts: u64, raw: &[u8]) -> Tick {
+pub fn tick_from_parts(symbol: &str, price: f64, size: f64, ts: u64, raw: &[u8]) -> Tick<'static> {
     Tick {
         symbol: Cow::Owned(symbol.to_string()),
         price,
@@ -122,26 +158,23 @@ pub enum IngestSource {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct IngestEnvelope<'a> {
-    pub tick: Tick<'a>,
+pub struct IngestEnvelope {
+    pub tick: OwnedTick,
     pub source: IngestSource,
 }
 
-impl<'a> IngestEnvelope<'a> {
-    pub fn owned(self) -> IngestEnvelope<'static> {
+impl IngestEnvelope {
+    pub fn new(tick: Tick<'_>) -> Self {
         IngestEnvelope {
-            tick: self.tick.owned(),
-            source: self.source,
+            tick: tick.to_owned_tick(),
+            source: IngestSource::Tcp,
         }
     }
 }
 
-impl<'a> From<Tick<'a>> for IngestEnvelope<'a> {
+impl<'a> From<Tick<'a>> for IngestEnvelope {
     fn from(tick: Tick<'a>) -> Self {
-        IngestEnvelope {
-            tick,
-            source: IngestSource::Tcp,
-        }
+        IngestEnvelope::new(tick)
     }
 }
 

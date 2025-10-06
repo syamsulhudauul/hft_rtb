@@ -167,9 +167,9 @@ pytest -v -m "not slow"        # Exclude slow tests
 ```bash
 # HFT Service Configuration
 export HFT_HOST=localhost
-export HFT_GATEWAY_PORT=8080
-export HFT_METRICS_PORT=9090
-export HFT_ADMIN_PORT=9091
+export HFT_GATEWAY_PORT=7001
+export HFT_METRICS_PORT=9002
+export HFT_ADMIN_PORT=9100
 
 # Kafka Configuration
 export KAFKA_BROKERS=localhost:9092

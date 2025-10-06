@@ -12,7 +12,7 @@ use tokio_util::codec::{Framed, LengthDelimitedCodec};
 use tracing::{error, info, instrument};
 
 #[instrument(skip(tx))]
-pub async fn run_tcp_gateway(addr: SocketAddr, tx: Sender<IngestEnvelope<'static>>) -> Result<()> {
+pub async fn run_tcp_gateway(addr: SocketAddr, tx: Sender<IngestEnvelope>) -> Result<()> {
     let listener = TcpListener::bind(addr).await?;
     info!(?addr, "tcp gateway bound");
     let mut incoming = TcpListenerStream::new(listener);
@@ -32,7 +32,7 @@ pub async fn run_tcp_gateway(addr: SocketAddr, tx: Sender<IngestEnvelope<'static
                                 let bytes = chunk.freeze();
                                 match decode_bytes(bytes) {
                                     Ok(tick) => {
-                                        if tx.send(IngestEnvelope { tick, source: IngestSource::Tcp }).await.is_err() {
+                                        if tx.send(IngestEnvelope { tick: tick.to_owned_tick(), source: IngestSource::Tcp }).await.is_err() {
                                             break;
                                         }
                                     }
@@ -89,7 +89,7 @@ pub mod kafka {
         brokers: &str,
         group: &str,
         topic: &str,
-        tx: Sender<IngestEnvelope<'static>>,
+        tx: Sender<IngestEnvelope>,
     ) -> Result<()> {
         let consumer: StreamConsumer = ClientConfig::new()
             .set("bootstrap.servers", brokers)
@@ -140,7 +140,7 @@ pub mod kafka {
         Ok(())
     }
 
-    pub fn resume_message(msg: &BorrowedMessage<'_>) -> Result<IngestEnvelope<'static>, PipelineError> {
+    pub fn resume_message(msg: &BorrowedMessage<'_>) -> Result<IngestEnvelope, PipelineError> {
         let payload = msg
             .payload()
             .ok_or_else(|| map_error("missing payload", "decode"))?;
